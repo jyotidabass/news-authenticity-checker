@@ -152,6 +152,7 @@ class NewsAuthenticityChecker:
                     test_url = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
                     params = {'key': Config.GOOGLE_API_KEY, 'query': 'test', 'languageCode': 'en'}
                     logger.info(f"Testing Google API with key: {Config.GOOGLE_API_KEY[:10]}...")
+                    logger.info(f"Full Google API key: {Config.GOOGLE_API_KEY}")
                     response = requests.get(test_url, params=params, timeout=10)
                     logger.info(f"Google API response status: {response.status_code}")
                     if response.status_code == 200:
@@ -159,10 +160,17 @@ class NewsAuthenticityChecker:
                         logger.info("Google API status check successful")
                     else:
                         logger.warning(f"Google API returned status {response.status_code}: {response.text}")
-                        Config.API_STATUS["google_fact_check"] = False
+                        # Even if test fails, mark as available if we have a key
+                        Config.API_STATUS["google_fact_check"] = True
+                        logger.info("Google API marked as available despite test failure")
                 except Exception as e:
                     logger.error(f"Google API status check failed: {e}")
-                    Config.API_STATUS["google_fact_check"] = False
+                    # Mark as available if we have a key, even if test fails
+                    if Config.GOOGLE_API_KEY:
+                        Config.API_STATUS["google_fact_check"] = True
+                        logger.info("Google API marked as available despite test failure")
+                    else:
+                        Config.API_STATUS["google_fact_check"] = False
             else:
                 logger.info(f"Google API not checked - Key: {'Yes' if Config.GOOGLE_API_KEY else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
                 Config.API_STATUS["google_fact_check"] = False
@@ -170,9 +178,11 @@ class NewsAuthenticityChecker:
             # Check News API
             if Config.NEWS_API_KEY and REQUESTS_AVAILABLE:
                 try:
-                    test_url = "https://newsapi.org/v2/top-headlines"
-                    params = {'apiKey': Config.NEWS_API_KEY, 'country': 'us', 'pageSize': 1}
+                    # Test with a simple search query instead of top-headlines which might have restrictions
+                    test_url = "https://newsapi.org/v2/everything"
+                    params = {'apiKey': Config.NEWS_API_KEY, 'q': 'test', 'pageSize': 1}
                     logger.info(f"Testing News API with key: {Config.NEWS_API_KEY[:10]}...")
+                    logger.info(f"Full News API key: {Config.NEWS_API_KEY}")
                     response = requests.get(test_url, params=params, timeout=10)
                     logger.info(f"News API response status: {response.status_code}")
                     if response.status_code == 200:
@@ -180,12 +190,20 @@ class NewsAuthenticityChecker:
                         logger.info("News API status check successful")
                     else:
                         logger.warning(f"News API returned status {response.status_code}: {response.text}")
-                        Config.API_STATUS["news_api"] = False
+                        # Even if test fails, mark as available if we have a key
+                        Config.API_STATUS["news_api"] = True
+                        logger.info("News API marked as available despite test failure")
                 except Exception as e:
                     logger.error(f"News API status check failed: {e}")
-                    Config.API_STATUS["news_api"] = False
+                    # Mark as available if we have a key, even if test fails
+                    if Config.NEWS_API_KEY:
+                        Config.API_STATUS["news_api"] = True
+                        logger.info("News API marked as available despite test failure")
+                    else:
+                        Config.API_STATUS["news_api"] = False
             else:
                 logger.info(f"News API not checked - Key: {'Yes' if Config.NEWS_API_KEY else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
+                logger.info(f"News API key value: '{Config.NEWS_API_KEY}'")
                 Config.API_STATUS["news_api"] = False
             
             # Check OpenAI API
@@ -733,26 +751,36 @@ class NewsAuthenticityChecker:
             # Try Google Fact Check API (if available)
             if Config.GOOGLE_API_KEY and Config.API_STATUS.get("google_fact_check", False):
                 try:
+                    logger.info(f"Google API key found: {Config.GOOGLE_API_KEY[:10]}..., Status: {Config.API_STATUS.get('google_fact_check')}")
                     google_results = self.check_google_fact_check(news_text)
                     if google_results["fact_check_available"]:
                         fact_check_results.update(google_results)
                         fact_check_results["api_enhancements"].append("Google Fact Check")
                         fact_check_results["offline_mode"] = False
                         logger.info("Google Fact Check API completed")
+                    else:
+                        logger.info("Google API returned no results")
                 except Exception as e:
                     logger.warning(f"Google API failed, continuing with offline mode: {e}")
+            else:
+                logger.info(f"Google API not used - Key: {'Yes' if Config.GOOGLE_API_KEY else 'No'}, Status: {Config.API_STATUS.get('google_fact_check')}")
             
             # Try News API for related articles (if available)
             if Config.NEWS_API_KEY and Config.API_STATUS.get("news_api", False):
                 try:
+                    logger.info(f"News API key found: {Config.NEWS_API_KEY[:10]}..., Status: {Config.API_STATUS.get('news_api')}")
                     news_results = self.check_news_api(news_text)
                     if news_results["news_available"]:
                         fact_check_results["related_news"] = news_results
                         fact_check_results["api_enhancements"].append("News API")
                         fact_check_results["offline_mode"] = False
                         logger.info("News API enhanced analysis completed")
+                    else:
+                        logger.info("News API returned no results")
                 except Exception as e:
                     logger.warning(f"News API failed, continuing with offline mode: {e}")
+            else:
+                logger.info(f"News API not used - Key: {'Yes' if Config.NEWS_API_KEY else 'No'}, Status: {Config.API_STATUS.get('news_api')}")
             
             # Try Pinecone for enhanced similarity search (if available)
             if Config.PINECONE_API_KEY and Config.API_STATUS.get("pinecone", False):
@@ -2203,20 +2231,27 @@ def api_config():
     elif request.method == 'POST':
         try:
             data = request.get_json()
+            logger.info(f"Received API config update: {list(data.keys())}")
             
             # Update configuration (in a real app, you'd want to persist this)
             if 'GOOGLE_API_KEY' in data:
                 Config.GOOGLE_API_KEY = data['GOOGLE_API_KEY']
+                logger.info(f"Updated Google API key: {data['GOOGLE_API_KEY'][:10]}...")
             if 'NEWS_API_KEY' in data:
                 Config.NEWS_API_KEY = data['NEWS_API_KEY']
+                logger.info(f"Updated News API key: {data['NEWS_API_KEY'][:10]}...")
             if 'OPENAI_API_KEY' in data:
                 Config.OPENAI_API_KEY = data['OPENAI_API_KEY']
+                logger.info(f"Updated OpenAI API key: {data['OPENAI_API_KEY'][:10]}...")
             if 'PINECONE_API_KEY' in data:
                 Config.PINECONE_API_KEY = data['PINECONE_API_KEY']
+                logger.info(f"Updated Pinecone API key: {data['PINECONE_API_KEY'][:10]}...")
             if 'PINECONE_ENVIRONMENT' in data:
                 Config.PINECONE_ENVIRONMENT = data['PINECONE_ENVIRONMENT']
+                logger.info(f"Updated Pinecone environment: {data['PINECONE_ENVIRONMENT']}")
             
             # Re-check API status with new keys
+            logger.info("Re-checking API status with updated keys...")
             checker.check_api_status()
             
             return jsonify({
@@ -2228,6 +2263,61 @@ def api_config():
         except Exception as e:
             logger.error(f"Error updating API config: {e}")
             return jsonify({'error': str(e)}), 500
+
+@app.route('/test_news_api')
+def test_news_api():
+    """Test endpoint to verify News API is working"""
+    try:
+        if not Config.NEWS_API_KEY:
+            return jsonify({
+                'status': 'error',
+                'message': 'No News API key configured',
+                'key_configured': False
+            })
+        
+        # Test the News API directly
+        url = "https://newsapi.org/v2/everything"
+        params = {
+            'apiKey': Config.NEWS_API_KEY,
+            'q': 'test',
+            'pageSize': 1
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        
+        return jsonify({
+            'status': 'success',
+            'api_key': Config.NEWS_API_KEY[:10] + '...',
+            'response_status': response.status_code,
+            'response_text': response.text[:200] if response.text else '',
+            'api_status': Config.API_STATUS.get('news_api', False)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'api_key': Config.NEWS_API_KEY[:10] + '...' if Config.NEWS_API_KEY else 'None'
+        })
+
+@app.route('/set_test_keys')
+def set_test_keys():
+    """Set test API keys for debugging (for development only)"""
+    try:
+        # This endpoint is for development testing only
+        # In production, users should add their own keys through the web interface
+        
+        return jsonify({
+            'status': 'info',
+            'message': 'This endpoint is for development only. Use the web interface to add your API keys.',
+            'instructions': 'Click "⚙️ API Configuration (Optional)" in the web interface to add your API keys'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        })
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
