@@ -1,6 +1,5 @@
 import os
 import json
-import numpy as np
 from flask import Flask, render_template_string, request, jsonify
 from datetime import datetime
 import re
@@ -12,6 +11,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Optional imports - app works without these
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    logger.warning("NumPy not available - using basic text analysis")
+
 try:
     import requests
     REQUESTS_AVAILABLE = True
@@ -323,12 +329,15 @@ class NewsAuthenticityChecker:
         facts.extend(additional_facts)
         return facts
     
-    def get_embedding(self, text: str) -> np.ndarray:
+    def get_embedding(self, text: str):
         """Generate embedding for given text"""
         if not TRANSFORMERS_AVAILABLE:
             logger.warning("Sentence transformers not available, using dummy embedding.")
-            return np.zeros(384) # Return a dummy embedding
-
+            if NUMPY_AVAILABLE:
+                return np.zeros(384) # Return a dummy embedding
+            else:
+                return [0.0] * 384  # Return a list of zeros
+        
         try:
             if not self.model:
                 self.model = SentenceTransformer(Config.MODEL_NAME)
@@ -336,26 +345,41 @@ class NewsAuthenticityChecker:
             return embedding
         except Exception as e:
             logger.error(f"Error generating embedding: {e}")
-            return np.zeros(384)
+            if NUMPY_AVAILABLE:
+                return np.zeros(384)
+            else:
+                return [0.0] * 384
     
-    def calculate_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
+    def calculate_similarity(self, embedding1, embedding2) -> float:
         """Calculate cosine similarity between two embeddings"""
         try:
-            similarity = np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+            if NUMPY_AVAILABLE:
+                similarity = np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+            else:
+                # Manual calculation for lists
+                dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
+                norm1 = sum(a * a for a in embedding1) ** 0.5
+                norm2 = sum(a * a for a in embedding2) ** 0.5
+                similarity = dot_product / (norm1 * norm2) if norm1 * norm2 > 0 else 0.0
             return float(similarity)
         except Exception as e:
             logger.error(f"Error calculating similarity: {e}")
             return 0.0
     
-    def search_similar_facts(self, query_embedding: np.ndarray, threshold: float = 0.75) -> List[Dict]:
+    def search_similar_facts(self, query_embedding, threshold: float = 0.75) -> List[Dict]:
         """Search for similar facts using Pinecone or local search"""
         similar_facts = []
         
         if self.pinecone_index:
             try:
                 # Search in Pinecone
+                if NUMPY_AVAILABLE and hasattr(query_embedding, 'tolist'):
+                    vector = query_embedding.tolist()
+                else:
+                    vector = query_embedding if isinstance(query_embedding, list) else list(query_embedding)
+                
                 results = self.pinecone_index.query(
-                    vector=query_embedding.tolist(),
+                    vector=vector,
                     top_k=10,
                     include_metadata=True
                 )
@@ -1161,19 +1185,16 @@ class NewsAuthenticityChecker:
 # Initialize the checker
 checker = NewsAuthenticityChecker()
 
-# Log startup information
-logger.info("🔍 News Authenticity Checker initialized")
-logger.info(f"Environment check - Google API: {'***' if os.getenv('GOOGLE_API_KEY') else 'Not set'}")
-logger.info(f"Environment check - News API: {'***' if os.getenv('NEWS_API_KEY') else 'Not set'}")
-
-# Check API status on startup
-checker.check_api_status()
-logger.info(f"Startup API status: {Config.API_STATUS}")
-
 @app.route('/')
 def index():
     """Main page"""
-    return render_template_string(HTML_TEMPLATE)
+    try:
+        # Simple test to ensure the app is working
+        logger.info("Main page accessed successfully")
+        return render_template_string(HTML_TEMPLATE)
+    except Exception as e:
+        logger.error(f"Error in main page: {e}")
+        return f"Error: {str(e)}", 500
 
 @app.route('/check_authenticity', methods=['POST'])
 def check_authenticity():
@@ -1374,17 +1395,7 @@ def debug_env():
             'status': 'success',
             'environment_variables': {
                 'GOOGLE_API_KEY': '***' if os.getenv("GOOGLE_API_KEY") else 'Not set',
-                'NEWS_API_KEY': '***' if os.getenv("NEWS_API_KEY") else 'Not set',
-                'OPENAI_API_KEY': '***' if os.getenv("OPENAI_API_KEY") else 'Not set',
-                'PINECONE_API_KEY': '***' if os.getenv("PINECONE_API_KEY") else 'Not set',
-                'PINECONE_ENVIRONMENT': os.getenv("PINECONE_ENVIRONMENT") or 'Not set'
-            },
-            'config_values': {
-                'GOOGLE_API_KEY': '***' if Config.GOOGLE_API_KEY else 'Not set',
-                'NEWS_API_KEY': '***' if Config.NEWS_API_KEY else 'Not set',
-                'OPENAI_API_KEY': '***' if Config.OPENAI_API_KEY else 'Not set',
-                'PINECONE_API_KEY': '***' if Config.PINECONE_API_KEY else 'Not set',
-                'PINECONE_ENVIRONMENT': Config.PINECONE_ENVIRONMENT or 'Not set'
+                'NEWS_API_KEY': '***' if os.getenv("NEWS_API_KEY") else 'Not set'
             },
             'api_status': Config.API_STATUS
         })
