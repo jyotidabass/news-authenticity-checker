@@ -2,22 +2,7 @@
 
 A powerful AI-powered application that detects misinformation in news articles using advanced NLP techniques, **completely offline** with optional API enhancements.
 
-**Developed by [Jyoti Dabass, Ph.D](https://github.com/jyotidabass/) - Researcher and Engineer specializing in AI/ML, Computer Vision, and Data Science**
-
-## 👨‍🔬 **About the Developer**
-
-**Jyoti Dabass, Ph.D** is a researcher and engineer with expertise in:
-- **Speech, Video, Audio and Image Analysis**
-- **Computer Vision and Deep Learning**
-- **Machine Learning and Fuzzy Logic**
-- **Natural Language Processing**
-- **Data Science and AI Applications**
-
-**Current Research**: Detection of breast cancer using histopathological images
-
-**Institution**: Indian Institute of Technology, New Delhi
-
-**Connect**: [LinkedIn](https://www.linkedin.com/in/jyoti-dabass-2b747083) | [Google Scholar](https://scholar.google.com/citations?user=a7HGcrkAAAAJ&hl=en&oi=ao) | [Kaggle](https://www.kaggle.com/jyotidabas)
+**A comprehensive solution for detecting misinformation and verifying news authenticity**
 
 ## ✨ Features
 
@@ -58,7 +43,7 @@ A powerful AI-powered application that detects misinformation in news articles u
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/jyotidabass/news-authenticity-checker.git
+git clone https://github.com/your-username/news-authenticity-checker.git
 cd news-authenticity-checker
 ```
 
@@ -277,10 +262,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/jyotidabass/news-authenticity-checker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jyotidabass/news-authenticity-checker/discussions)
-- **Email**: jyotidabas91@gmail.com
-- **LinkedIn**: [Jyoti Dabass](https://www.linkedin.com/in/jyoti-dabass-2b747083)
+- **Issues**: [GitHub Issues](https://github.com/your-username/news-authenticity-checker/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/news-authenticity-checker/discussions)
 
 ## 🔮 Future Enhancements
 
@@ -295,17 +278,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Integration with medical fact-checking databases
 - [ ] Audio/video content analysis
 
-## 🔬 Research Applications
-
-This project demonstrates practical applications of:
-- **Natural Language Processing** in misinformation detection
-- **Machine Learning** for text classification and sentiment analysis
-- **AI Ethics** in promoting information literacy
-- **Computer Vision** concepts applied to text analysis
-- **Data Science** methodologies in fact verification
-
 ---
 
-**Made with ❤️ by [Jyoti Dabass, Ph.D](https://github.com/jyotidabass/) for a more informed world**
-
-**Part of ongoing research in AI-powered misinformation detection and fact verification systems.**
+**Built for a more informed world with AI-powered misinformation detection and fact verification systems.**
