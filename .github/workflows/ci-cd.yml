@@ -30,9 +30,9 @@ jobs:
     
     - name: Debug Python version
       run: |
+        echo "Matrix version: ${{ matrix.python-version }}"
         echo "Python version: $(python --version)"
         echo "Python location: $(which python)"
-        echo "Matrix version: ${{ matrix.python-version }}"
     
     - name: Cache pip dependencies
       uses: actions/cache@v3
@@ -188,7 +188,7 @@ jobs:
           - Test coverage reporting
           
           ### 📦 Artifacts
-          - Docker image: `jyotidabass/news-authenticity-checker:latest`
+          - Docker image: `your-username/news-authenticity-checker:latest`
           - Vercel deployment: Automatic
           - Test coverage: Available in artifacts
           
