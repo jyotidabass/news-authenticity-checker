@@ -11,7 +11,12 @@ numpy>=1.24.0,<2.0.0
 # scikit-learn>=1.3.0          # For advanced ML features
 
 # Optional external APIs (commented out for Vercel):
-# requests>=2.31.0             # For Google Fact Check API, News API
+# requests>=2.31.0             # For Google Fact Check API, News API, OpenAI API
 # pinecone-client>=2.2.0       # For vector similarity search
 # beautifulsoup4>=4.12.0       # For web scraping features
 # lxml>=4.9.0                  # For BeautifulSoup parsing
+
+# Enhanced API Support (Optional - for better results):
+# openai>=1.0.0                # For OpenAI API integration
+# google-api-python-client>=2.0.0  # For Google Fact Check API
+# newsapi-python>=0.2.6        # For News API integration

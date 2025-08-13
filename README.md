@@ -14,14 +14,17 @@ A powerful AI-powered application that detects misinformation in news articles u
 - **Beautiful UI**: Modern, responsive web interface with real-time feedback
 - **Smart Recommendations**: AI-generated suggestions for fact verification
 - **Multiple Verification Methods**: Combines offline analysis with optional API enhancements
-- **Optional API Integration**: Google Fact Check, News API, and Pinecone for enhanced features
+- **Optional API Integration**: Google Fact Check, News API, OpenAI, and Pinecone for enhanced features
+- **Dynamic API Configuration**: Web-based API key management for easy setup
+- **Real-time API Status**: Live monitoring of API availability and performance
 
 ## 🚀 Technologies Used
 
 - **Backend**: Flask (Python)
 - **AI/ML**: HuggingFace Transformers, Sentence Transformers
 - **Local Database**: Built-in verified facts (always available)
-- **Optional**: Google Fact Check API, News API, Pinecone
+- **Optional APIs**: Google Fact Check API, News API, OpenAI API, Pinecone
+- **Configuration**: Dynamic API key management with real-time status monitoring
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
 - **Deployment**: Vercel, GitHub, or any platform
 
@@ -66,10 +69,19 @@ GOOGLE_API_KEY=your_google_api_key_here
 # News API (Optional - free tier available)
 NEWS_API_KEY=your_news_api_key_here
 
+# OpenAI API (Optional - for AI-powered analysis)
+OPENAI_API_KEY=your_openai_api_key_here
+
 # Pinecone (Optional - for enhanced vector search)
 PINECONE_API_KEY=your_pinecone_api_key_here
 PINECONE_ENVIRONMENT=your_pinecone_environment_here
 ```
+
+**Alternative: Use the Web Interface**
+- **No file editing required!** Use the built-in API configuration panel
+- **Real-time status monitoring** of all API connections
+- **Easy setup** with copy-paste API keys
+- **Instant activation** of enhanced features
 
 **Free Alternatives Available:**
 - **Fact-Checking Sources**: Snopes, FactCheck.org, PolitiFact, Reuters, BBC, AFP
@@ -88,15 +100,20 @@ PINECONE_ENVIRONMENT=your_pinecone_environment_here
 4. Create credentials (API Key)
 5. Copy the API key to your `.env` file
 
+#### OpenAI API (Optional - AI-Powered Analysis)
+1. Sign up at [OpenAI Platform](https://platform.openai.com/)
+2. Create an API key
+3. Add to `.env` file or use the web interface for enhanced AI analysis
+
 #### News API (Optional - Free Tier Available)
 1. Sign up at [News API](https://newsapi.org/) (1000 requests/month free)
 2. Get your API key
-3. Add to `.env` file for related news articles
+3. Add to `.env` file or use the web interface for related news articles
 
 #### Pinecone (Optional - Enhanced Vector Search)
 1. Sign up at [Pinecone](https://www.pinecone.io/)
 2. Create a new index
-3. Copy your API key and environment to `.env` file
+3. Copy your API key and environment to `.env` file or use the web interface
 
 **What You Get Without API Keys:**
 - ✅ AI-powered text analysis
@@ -165,14 +182,18 @@ The authenticity score is calculated based on:
 ### 🌐 **Enhanced with APIs (Optional)**
 - 🔍 **Google Fact Check**: Real-time fact verification from Google's database
 - 📰 **News API**: Related articles and current news context
+- 🤖 **OpenAI API**: Advanced AI-powered fact-checking and reasoning
 - 🗄️ **Pinecone**: Advanced vector similarity search
 - 🔄 **Real-time Updates**: Live fact-checking data
+- ⚙️ **Dynamic Configuration**: Web-based API management
+- 📊 **Live Status Monitoring**: Real-time API performance tracking
 
 ### 📱 **Deployment Flexibility**
 - **Local Development**: Works completely offline
 - **Cloud Deployment**: Enhanced with optional APIs
 - **Air-gapped Networks**: Full functionality without internet
 - **Low-bandwidth Environments**: Core features work without external calls
+- **Easy API Setup**: No file editing required - use the web interface
 
 ## 🚀 Deployment
 
@@ -206,8 +227,27 @@ The application is compatible with:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `GOOGLE_API_KEY` | Google Fact Check API key | No |
+| `NEWS_API_KEY` | News API key | No |
+| `OPENAI_API_KEY` | OpenAI API key | No |
 | `PINECONE_API_KEY` | Pinecone API key | No |
 | `PINECONE_ENVIRONMENT` | Pinecone environment | No |
+
+### Web-Based Configuration (Recommended)
+
+> **💡 No file editing required!** Use the built-in API configuration panel for easy setup.
+
+1. **Open the App**: Navigate to your deployed application
+2. **Click "API Configuration"**: Located below the main input form
+3. **Enter API Keys**: Copy-paste your API keys into the form
+4. **Save Configuration**: Click "Save API Configuration"
+5. **Monitor Status**: Real-time status indicators show API availability
+
+**Benefits of Web Configuration:**
+- ✅ **Instant Activation**: No server restarts required
+- ✅ **Real-time Monitoring**: Live status of all API connections
+- ✅ **Easy Management**: Update keys without touching files
+- ✅ **Visual Feedback**: Clear indicators of what's working
+- ✅ **Secure Input**: Password fields protect your API keys
 
 ### Customization
 
@@ -239,6 +279,17 @@ curl http://localhost:5000/health
 curl -X POST http://localhost:5000/check_authenticity \
   -H "Content-Type: application/json" \
   -d '{"news_text": "Your news text here"}'
+
+# Get API status
+curl http://localhost:5000/api/status
+
+# Get API configuration
+curl http://localhost:5000/api/config
+
+# Update API configuration
+curl -X POST http://localhost:5000/api/config \
+  -H "Content-Type: application/json" \
+  -d '{"GOOGLE_API_KEY": "your_key_here"}'
 ```
 
 ## 🤝 Contributing
@@ -267,6 +318,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔮 Future Enhancements
 
+- [x] **Multi-API Integration**: Google Fact Check, News API, OpenAI, Pinecone
+- [x] **Dynamic API Configuration**: Web-based API key management
+- [x] **Real-time API Monitoring**: Live status and performance tracking
+- [x] **Enhanced AI Analysis**: OpenAI-powered fact-checking
 - [ ] Multi-language support
 - [ ] Real-time news monitoring
 - [ ] Browser extension

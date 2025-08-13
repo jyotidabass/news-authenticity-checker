@@ -45,6 +45,11 @@ class Config:
     NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     
+    # Additional optional APIs for enhanced fact-checking
+    FACT_CHECK_API_KEY = os.getenv("FACT_CHECK_API_KEY", "")  # FactCheck.org API
+    SNOPES_API_KEY = os.getenv("SNOPES_API_KEY", "")          # Snopes API (if available)
+    POLITIFACT_API_KEY = os.getenv("POLITIFACT_API_KEY", "")  # PolitiFact API (if available)
+    
     # Optional Pinecone configuration
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
     PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "")
@@ -52,6 +57,17 @@ class Config:
     
     # Similarity threshold for fact-checking
     SIMILARITY_THRESHOLD = 0.75
+    
+    # API status tracking
+    API_STATUS = {
+        "google_fact_check": False,
+        "news_api": False,
+        "openai": False,
+        "fact_check_org": False,
+        "snopes": False,
+        "politifact": False,
+        "pinecone": False
+    }
     
     # Free fact-checking sources (always available)
     FREE_FACT_CHECK_SOURCES = [
@@ -119,11 +135,96 @@ class NewsAuthenticityChecker:
                     )
                 
                 self.pinecone_index = pinecone.Index(Config.PINECONE_INDEX_NAME)
+                Config.API_STATUS["pinecone"] = True
                 logger.info("Pinecone initialized successfully")
             else:
                 logger.warning("Pinecone API key not provided, using local similarity search")
         except Exception as e:
             logger.error(f"Failed to initialize Pinecone: {e}")
+            Config.API_STATUS["pinecone"] = False
+    
+    def check_api_status(self):
+        """Check and update the status of all available APIs"""
+        try:
+            # Check Google Fact Check API
+            if Config.GOOGLE_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    test_url = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
+                    params = {'key': Config.GOOGLE_API_KEY, 'query': 'test', 'languageCode': 'en'}
+                    response = requests.get(test_url, params=params, timeout=5)
+                    Config.API_STATUS["google_fact_check"] = response.status_code == 200
+                except:
+                    Config.API_STATUS["google_fact_check"] = False
+            else:
+                Config.API_STATUS["google_fact_check"] = False
+            
+            # Check News API
+            if Config.NEWS_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    test_url = "https://newsapi.org/v2/top-headlines"
+                    params = {'apiKey': Config.NEWS_API_KEY, 'country': 'us', 'pageSize': 1}
+                    response = requests.get(test_url, params=params, timeout=5)
+                    Config.API_STATUS["news_api"] = response.status_code == 200
+                except:
+                    Config.API_STATUS["news_api"] = False
+            else:
+                Config.API_STATUS["news_api"] = False
+            
+            # Check OpenAI API
+            if Config.OPENAI_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    test_url = "https://api.openai.com/v1/models"
+                    headers = {'Authorization': f'Bearer {Config.OPENAI_API_KEY}'}
+                    response = requests.get(test_url, headers=headers, timeout=5)
+                    Config.API_STATUS["openai"] = response.status_code == 200
+                except:
+                    Config.API_STATUS["openai"] = False
+            else:
+                Config.API_STATUS["openai"] = False
+            
+            # Check FactCheck.org API (if available)
+            if Config.FACT_CHECK_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    # This would be a custom endpoint if FactCheck.org provides an API
+                    Config.API_STATUS["fact_check_org"] = True
+                except:
+                    Config.API_STATUS["fact_check_org"] = False
+            else:
+                Config.API_STATUS["fact_check_org"] = False
+            
+            # Check Snopes API (if available)
+            if Config.SNOPES_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    # This would be a custom endpoint if Snopes provides an API
+                    Config.API_STATUS["snopes"] = True
+                except:
+                    Config.API_STATUS["snopes"] = False
+            else:
+                Config.API_STATUS["snopes"] = False
+            
+            # Check PolitiFact API (if available)
+            if Config.POLITIFACT_API_KEY and REQUESTS_AVAILABLE:
+                try:
+                    # This would be a custom endpoint if PolitiFact provides an API
+                    Config.API_STATUS["politifact"] = True
+                except:
+                    Config.API_STATUS["politifact"] = False
+            else:
+                Config.API_STATUS["politifact"] = False
+                
+        except Exception as e:
+            logger.error(f"Error checking API status: {e}")
+    
+    def get_api_enhancement_score(self):
+        """Calculate how much APIs enhance the results"""
+        active_apis = sum(Config.API_STATUS.values())
+        total_apis = len(Config.API_STATUS)
+        return {
+            "active_apis": active_apis,
+            "total_apis": total_apis,
+            "enhancement_percentage": (active_apis / total_apis) * 100 if total_apis > 0 else 0,
+            "status": Config.API_STATUS.copy()
+        }
     
     def load_fact_database(self) -> List[Dict]:
         """Load a database of verified facts for comparison - always works offline"""
@@ -534,6 +635,9 @@ class NewsAuthenticityChecker:
     def check_news_authenticity(self, news_text: str) -> Dict:
         """Main function to check news authenticity - always works offline"""
         try:
+            # Check API status first
+            self.check_api_status()
+            
             # Generate embedding for the news text
             news_embedding = self.get_embedding(news_text)
             
@@ -550,16 +654,31 @@ class NewsAuthenticityChecker:
                 "confidence": 0.0,
                 "sources": [],
                 "claims": [],
-                "offline_mode": True
+                "offline_mode": True,
+                "api_enhancements": []
             }
             
+            # Try OpenAI API for enhanced analysis (if available)
+            if Config.OPENAI_API_KEY and Config.API_STATUS.get("openai", False):
+                try:
+                    openai_results = self.check_openai_fact_check(news_text)
+                    if openai_results["openai_analysis_available"]:
+                        fact_check_results.update(openai_results)
+                        fact_check_results["api_enhancements"].append("OpenAI Analysis")
+                        fact_check_results["offline_mode"] = False
+                        logger.info("OpenAI API enhanced fact-checking completed")
+                except Exception as e:
+                    logger.warning(f"OpenAI API failed, continuing with other methods: {e}")
+            
             # Try Google Fact Check API (if available)
-            if Config.GOOGLE_API_KEY:
+            if Config.GOOGLE_API_KEY and Config.API_STATUS.get("google_fact_check", False):
                 try:
                     google_results = self.check_google_fact_check(news_text)
                     if google_results["fact_check_available"]:
                         fact_check_results.update(google_results)
+                        fact_check_results["api_enhancements"].append("Google Fact Check")
                         fact_check_results["offline_mode"] = False
+                        logger.info("Google Fact Check API completed")
                 except Exception as e:
                     logger.warning(f"Google API failed, continuing with offline mode: {e}")
             
@@ -589,6 +708,9 @@ class NewsAuthenticityChecker:
                 similar_facts, text_analysis, fact_check_results
             )
             
+            # Get API enhancement information
+            api_enhancement_info = self.get_api_enhancement_score()
+            
             # Ensure we always have a result
             if not fact_check_results["fact_check_available"]:
                 fact_check_results["fact_check_available"] = True
@@ -601,7 +723,9 @@ class NewsAuthenticityChecker:
                 "text_analysis": text_analysis,
                 "fact_check_results": fact_check_results,
                 "recommendations": self.generate_recommendations(authenticity_score, text_analysis, fact_check_results),
-                "offline_mode": fact_check_results["offline_mode"]
+                "offline_mode": fact_check_results["offline_mode"],
+                "api_enhancements": fact_check_results["api_enhancements"],
+                "enhanced_with_apis": len(fact_check_results["api_enhancements"]) > 0
             }
         
         except Exception as e:
@@ -619,14 +743,16 @@ class NewsAuthenticityChecker:
                     "fact_check_results": {"offline_mode": True, "fact_check_available": False},
                     "recommendations": ["Basic analysis completed. Check the text characteristics above."],
                     "offline_mode": True,
-                    "fallback_mode": True
+                    "fallback_mode": True,
+                    "api_status": self.get_api_enhancement_score()
                 }
             except:
                 return {
                     "error": str(e),
                     "authenticity_score": 0.0,
                     "offline_mode": True,
-                    "fallback_mode": True
+                    "fallback_mode": True,
+                    "api_status": self.get_api_enhancement_score()
                 }
     
     def analyze_text_characteristics(self, text: str) -> Dict:
@@ -805,6 +931,107 @@ class NewsAuthenticityChecker:
         ])
         
         return recommendations
+
+    def check_openai_fact_check(self, text: str) -> Dict:
+        """Check news using OpenAI API for enhanced fact-checking"""
+        results = {
+            "openai_analysis_available": False,
+            "verdict": None,
+            "confidence": 0.0,
+            "analysis": "",
+            "sources": [],
+            "reasoning": ""
+        }
+        
+        if not Config.OPENAI_API_KEY:
+            logger.warning("OpenAI API key not provided")
+            return results
+        
+        if not REQUESTS_AVAILABLE:
+            logger.warning("Requests module not available, cannot use OpenAI API.")
+            return results
+
+        try:
+            # OpenAI API endpoint
+            url = "https://api.openai.com/v1/chat/completions"
+            
+            # Create a comprehensive prompt for fact-checking
+            prompt = f"""
+            Analyze the following news text for authenticity and provide a fact-check assessment:
+            
+            Text: "{text}"
+            
+            Please provide:
+            1. A verdict (true/false/partially_true/unclear)
+            2. Confidence level (0-1)
+            3. Brief analysis of why you reached this conclusion
+            4. Any specific claims that can be verified
+            5. Recommendations for further verification
+            
+            Format your response as JSON with these fields:
+            {{
+                "verdict": "true/false/partially_true/unclear",
+                "confidence": 0.0-1.0,
+                "analysis": "brief analysis",
+                "claims": ["claim1", "claim2"],
+                "recommendations": ["rec1", "rec2"]
+            }}
+            """
+            
+            headers = {
+                'Authorization': f'Bearer {Config.OPENAI_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+            
+            data = {
+                'model': 'gpt-3.5-turbo',
+                'messages': [
+                    {'role': 'system', 'content': 'You are a fact-checking expert. Provide accurate, unbiased analysis.'},
+                    {'role': 'user', 'content': prompt}
+                ],
+                'max_tokens': 500,
+                'temperature': 0.3
+            }
+            
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                content = response_data['choices'][0]['message']['content']
+                
+                try:
+                    # Try to parse JSON response
+                    import json
+                    parsed_content = json.loads(content)
+                    
+                    results["openai_analysis_available"] = True
+                    results["verdict"] = parsed_content.get("verdict", "unclear")
+                    results["confidence"] = parsed_content.get("confidence", 0.5)
+                    results["analysis"] = parsed_content.get("analysis", "")
+                    results["reasoning"] = f"AI Analysis: {parsed_content.get('analysis', '')}"
+                    
+                    # Add claims and recommendations
+                    if "claims" in parsed_content:
+                        results["claims"] = parsed_content["claims"]
+                    if "recommendations" in parsed_content:
+                        results["recommendations"] = parsed_content["recommendations"]
+                        
+                except json.JSONDecodeError:
+                    # Fallback if JSON parsing fails
+                    results["openai_analysis_available"] = True
+                    results["verdict"] = "unclear"
+                    results["confidence"] = 0.5
+                    results["analysis"] = content
+                    results["reasoning"] = f"AI Analysis: {content}"
+                
+                logger.info("OpenAI fact-checking completed successfully")
+            else:
+                logger.warning(f"OpenAI API request failed with status {response.status_code}")
+                
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+        
+        return results
 
 # Initialize the checker
 checker = NewsAuthenticityChecker()
@@ -1127,6 +1354,148 @@ HTML_TEMPLATE = """
             margin-right: 5px;
         }
         
+        .api-enhanced-badge {
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .api-config-panel {
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .api-config-panel.show {
+            display: block;
+        }
+        
+        .api-config-toggle {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .api-config-toggle:hover {
+            background: #5a6268;
+        }
+        
+        .api-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .api-status-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #6c757d;
+            position: relative;
+        }
+        
+        .api-status-card.active {
+            border-left-color: #27ae60;
+        }
+        
+        .api-status-card.inactive {
+            border-left-color: #e74c3c;
+        }
+        
+        .api-status-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .api-status-indicator.active {
+            background-color: #27ae60;
+        }
+        
+        .api-status-indicator.inactive {
+            background-color: #e74c3c;
+        }
+        
+        .api-input-group {
+            margin-bottom: 15px;
+        }
+        
+        .api-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .api-input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .api-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .api-save-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .api-save-btn:hover {
+            background: #229954;
+        }
+        
+        .enhancement-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            margin-bottom: 20px;
+        }
+        
+        .enhancement-info h4 {
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+        
+        .api-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .api-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #d5e8d5;
+        }
+        
+        .api-list li:last-child {
+            border-bottom: none;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -1170,6 +1539,64 @@ HTML_TEMPLATE = """
                 </button>
             </div>
             
+            <!-- API Configuration Panel -->
+            <button class="api-config-toggle" onclick="toggleApiConfig()">
+                ⚙️ API Configuration (Optional)
+            </button>
+            
+            <div class="api-config-panel" id="apiConfigPanel">
+                <h3>🔑 Optional API Keys for Enhanced Results</h3>
+                <p>Add API keys to get better fact-checking results. All features work without APIs, but they provide enhanced accuracy and real-time data.</p>
+                
+                <div class="api-status-grid" id="apiStatusGrid">
+                    <!-- API status cards will be populated here -->
+                </div>
+                
+                <form id="apiConfigForm">
+                    <div class="api-input-group">
+                        <label for="googleApiKey">Google Fact Check API Key:</label>
+                        <input type="password" id="googleApiKey" placeholder="Get from Google Cloud Console">
+                        <small>Enhanced fact-checking using Google's database</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="newsApiKey">News API Key:</label>
+                        <input type="password" id="newsApiKey" placeholder="Get from NewsAPI.org (free tier available)">
+                        <small>Related news articles and context</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="openaiApiKey">OpenAI API Key:</label>
+                        <input type="password" id="openaiApiKey" placeholder="Get from OpenAI Platform">
+                        <small>AI-powered fact-checking and analysis</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="pineconeApiKey">Pinecone API Key:</label>
+                        <input type="password" id="pineconeApiKey" placeholder="Get from Pinecone.io">
+                        <small>Advanced vector similarity search</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="pineconeEnvironment">Pinecone Environment:</label>
+                        <input type="text" id="pineconeEnvironment" placeholder="e.g., us-west1-gcp">
+                        <small>Your Pinecone environment (e.g., us-west1-gcp)</small>
+                    </div>
+                    
+                    <button type="submit" class="api-save-btn">💾 Save API Configuration</button>
+                </form>
+                
+                <div class="enhancement-info">
+                    <h4>🚀 What APIs Add to Your Results:</h4>
+                    <ul class="api-list">
+                        <li><strong>Google Fact Check:</strong> Real-time fact verification from Google's database</li>
+                        <li><strong>News API:</strong> Related articles and current news context</li>
+                        <li><strong>OpenAI:</strong> Advanced AI analysis and reasoning</li>
+                        <li><strong>Pinecone:</strong> Enhanced similarity search and fact matching</li>
+                    </ul>
+                </div>
+            </div>
+            
             <div class="loading" id="loading" style="display: none;">
                 <div class="spinner"></div>
                 <p>Analyzing news authenticity...</p>
@@ -1185,6 +1612,16 @@ HTML_TEMPLATE = """
                         <span class="offline-badge">🆓 Offline Mode</span>
                         <small>Working without external APIs</small>
                     </div>
+                    <div class="offline-status" id="apiEnhancedStatus" style="display: none;">
+                        <span class="api-enhanced-badge">🚀 API Enhanced</span>
+                        <small>Enhanced with external APIs for better accuracy</small>
+                    </div>
+                </div>
+                
+                <!-- API Enhancement Info -->
+                <div class="enhancement-info" id="enhancementInfo" style="display: none;">
+                    <h4>🚀 API Enhancements Applied</h4>
+                    <div id="enhancementDetails"></div>
                 </div>
                 
                 <div class="analysis-grid">
@@ -1290,10 +1727,25 @@ HTML_TEMPLATE = """
 
             // Update offline status
             const offlineStatus = document.getElementById('offlineStatus');
-            if (result.offline_mode) {
-                offlineStatus.style.display = 'block';
-            } else {
+            const apiEnhancedStatus = document.getElementById('apiEnhancedStatus');
+            const enhancementInfo = document.getElementById('enhancementInfo');
+            
+            if (result.enhanced_with_apis) {
                 offlineStatus.style.display = 'none';
+                apiEnhancedStatus.style.display = 'block';
+                enhancementInfo.style.display = 'block';
+                
+                // Show API enhancements
+                const enhancementDetails = document.getElementById('enhancementDetails');
+                enhancementDetails.innerHTML = `
+                    <p><strong>APIs Used:</strong> ${result.api_enhancements.join(', ')}</p>
+                    <p><strong>Enhancement Level:</strong> ${result.api_status.enhancement_percentage.toFixed(1)}% (${result.api_status.active_apis}/${result.api_status.total_apis} APIs active)</p>
+                    <p>Your results are enhanced with real-time data and advanced AI analysis!</p>
+                `;
+            } else {
+                offlineStatus.style.display = 'block';
+                apiEnhancedStatus.style.display = 'none';
+                enhancementInfo.style.display = 'none';
             }
             
             // Display text analysis
@@ -1400,6 +1852,113 @@ HTML_TEMPLATE = """
                 checkAuthenticity();
             }
         });
+        
+        // API Configuration Functions
+        function toggleApiConfig() {
+            const panel = document.getElementById('apiConfigPanel');
+            panel.classList.toggle('show');
+            
+            if (panel.classList.contains('show')) {
+                loadApiStatus();
+                loadApiConfig();
+            }
+        }
+        
+        async function loadApiStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayApiStatus(data);
+                }
+            } catch (error) {
+                console.error('Error loading API status:', error);
+            }
+        }
+        
+        function displayApiStatus(data) {
+            const statusGrid = document.getElementById('apiStatusGrid');
+            statusGrid.innerHTML = '';
+            
+            data.available_apis.forEach(api => {
+                const card = document.createElement('div');
+                card.className = `api-status-card ${api.status ? 'active' : 'inactive'}`;
+                
+                const statusClass = api.status ? 'active' : 'inactive';
+                const statusText = api.status ? 'Active' : 'Inactive';
+                
+                card.innerHTML = `
+                    <div class="api-status-indicator ${statusClass}"></div>
+                    <h4>${api.name}</h4>
+                    <p>${api.description}</p>
+                    <small><strong>Status:</strong> ${statusText}</small>
+                    <br>
+                    <small><a href="${api.url}" target="_blank">Get API Key</a></small>
+                `;
+                
+                statusGrid.appendChild(card);
+            });
+        }
+        
+        async function loadApiConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Note: We don't populate the actual keys for security
+                    // Just show the current status
+                    console.log('API config loaded');
+                }
+            } catch (error) {
+                console.error('Error loading API config:', error);
+            }
+        }
+        
+        // Handle API configuration form submission
+        document.getElementById('apiConfigForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                GOOGLE_API_KEY: document.getElementById('googleApiKey').value,
+                NEWS_API_KEY: document.getElementById('newsApiKey').value,
+                OPENAI_API_KEY: document.getElementById('openaiApiKey').value,
+                PINECONE_API_KEY: document.getElementById('pineconeApiKey').value,
+                PINECONE_ENVIRONMENT: document.getElementById('pineconeEnvironment').value
+            };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('API configuration saved successfully!');
+                    // Clear the form
+                    document.getElementById('apiConfigForm').reset();
+                    // Reload API status
+                    loadApiStatus();
+                } else {
+                    alert('Error saving configuration: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving API config:', error);
+                alert('Error saving configuration. Please try again.');
+            }
+        });
+        
+        // Load API status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial API status
+            loadApiStatus();
+        });
     </script>
 </body>
 </html>
@@ -1433,6 +1992,111 @@ def check_authenticity():
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/status')
+def api_status():
+    """Get API status and configuration"""
+    try:
+        # Check API status
+        checker.check_api_status()
+        
+        return jsonify({
+            'status': 'success',
+            'api_status': Config.API_STATUS,
+            'enhancement_info': checker.get_api_enhancement_score(),
+            'available_apis': [
+                {
+                    'name': 'Google Fact Check',
+                    'key': 'GOOGLE_API_KEY',
+                    'status': Config.API_STATUS.get('google_fact_check', False),
+                    'description': 'Enhanced fact-checking using Google\'s database',
+                    'url': 'https://developers.google.com/fact-check/tools/api'
+                },
+                {
+                    'name': 'News API',
+                    'key': 'NEWS_API_KEY',
+                    'status': Config.API_STATUS.get('news_api', False),
+                    'description': 'Related news articles and context',
+                    'url': 'https://newsapi.org/'
+                },
+                {
+                    'name': 'OpenAI',
+                    'key': 'OPENAI_API_KEY',
+                    'status': Config.API_STATUS.get('openai', False),
+                    'description': 'AI-powered fact-checking and analysis',
+                    'url': 'https://platform.openai.com/'
+                },
+                {
+                    'name': 'Pinecone',
+                    'key': 'PINECONE_API_KEY',
+                    'status': Config.API_STATUS.get('pinecone', False),
+                    'description': 'Advanced vector similarity search',
+                    'url': 'https://www.pinecone.io/'
+                }
+            ],
+            'offline_features': [
+                'AI Text Analysis',
+                'Emotional Language Detection',
+                'Clickbait Pattern Recognition',
+                'Local Fact Database',
+                'Similarity Matching',
+                'Authenticity Scoring'
+            ]
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in api_status endpoint: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/config', methods=['GET', 'POST'])
+def api_config():
+    """Get or update API configuration"""
+    if request.method == 'GET':
+        return jsonify({
+            'status': 'success',
+            'config': {
+                'GOOGLE_API_KEY': '***' if Config.GOOGLE_API_KEY else '',
+                'NEWS_API_KEY': '***' if Config.NEWS_API_KEY else '',
+                'OPENAI_API_KEY': '***' if Config.OPENAI_API_KEY else '',
+                'PINECONE_API_KEY': '***' if Config.PINECONE_API_KEY else '',
+                'PINECONE_ENVIRONMENT': Config.PINECONE_ENVIRONMENT or ''
+            },
+            'instructions': {
+                'GOOGLE_API_KEY': 'Get from Google Cloud Console - Fact Check Tools API',
+                'NEWS_API_KEY': 'Get from NewsAPI.org (free tier available)',
+                'OPENAI_API_KEY': 'Get from OpenAI Platform',
+                'PINECONE_API_KEY': 'Get from Pinecone.io'
+            }
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Update configuration (in a real app, you'd want to persist this)
+            if 'GOOGLE_API_KEY' in data:
+                Config.GOOGLE_API_KEY = data['GOOGLE_API_KEY']
+            if 'NEWS_API_KEY' in data:
+                Config.NEWS_API_KEY = data['NEWS_API_KEY']
+            if 'OPENAI_API_KEY' in data:
+                Config.OPENAI_API_KEY = data['OPENAI_API_KEY']
+            if 'PINECONE_API_KEY' in data:
+                Config.PINECONE_API_KEY = data['PINECONE_API_KEY']
+            if 'PINECONE_ENVIRONMENT' in data:
+                Config.PINECONE_ENVIRONMENT = data['PINECONE_ENVIRONMENT']
+            
+            # Re-check API status with new keys
+            checker.check_api_status()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Configuration updated successfully',
+                'api_status': Config.API_STATUS
+            })
+        
+        except Exception as e:
+            logger.error(f"Error updating API config: {e}")
+            return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

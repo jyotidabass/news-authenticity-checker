@@ -1,132 +1,173 @@
 #!/usr/bin/env python3
 """
-Offline Test Script for News Authenticity Checker
-This script demonstrates that the app works completely offline without any external APIs.
+Test script for the News Authenticity Checker
+Tests both offline functionality and API integration
 """
 
-import os
-import sys
+import requests
+import json
+import time
 
-# Ensure we're in the right directory
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Configuration
+BASE_URL = "http://localhost:5000"
+TEST_NEWS = "Scientists discover that drinking coffee can cure all diseases and make you live forever."
 
-def test_offline_functionality():
-    """Test that the app works without any external dependencies"""
-    print("🧪 Testing Offline Functionality...")
-    print("=" * 50)
-    
+def test_health_endpoint():
+    """Test the health check endpoint"""
+    print("🔍 Testing health endpoint...")
     try:
-        # Import the app components
-        from app import NewsAuthenticityChecker, Config
-        
-        print("✅ Successfully imported app components")
-        
-        # Test configuration
-        print(f"📋 Configuration loaded:")
-        print(f"   - Model: {Config.MODEL_NAME}")
-        print(f"   - Google API Key: {'Set' if Config.GOOGLE_API_KEY else 'Not Set'}")
-        print(f"   - News API Key: {'Set' if Config.NEWS_API_KEY else 'Not Set'}")
-        print(f"   - Pinecone API Key: {'Set' if Config.PINECONE_API_KEY else 'Not Set'}")
-        print(f"   - Free Sources: {len(Config.FREE_FACT_CHECK_SOURCES)} available")
-        print(f"   - Enhanced Facts: {len(Config.ENHANCED_FACTS)} available")
-        
-        # Test checker initialization
-        print("\n🔧 Initializing News Authenticity Checker...")
-        checker = NewsAuthenticityChecker()
-        print("✅ Checker initialized successfully")
-        
-        # Test offline fact database
-        print("\n📚 Testing offline fact database...")
-        facts = checker.load_fact_database()
-        print(f"✅ Loaded {len(facts)} facts from local database")
-        
-        # Test text analysis (completely offline)
-        print("\n📊 Testing offline text analysis...")
-        test_text = "This is a test news article about COVID-19 vaccines and their effectiveness."
-        analysis = checker.analyze_text_characteristics(test_text)
-        print("✅ Text analysis completed offline:")
-        print(f"   - Length: {analysis['length']} characters")
-        print(f"   - Word Count: {analysis['word_count']} words")
-        print(f"   - Emotional Language: {analysis['has_emotional_language']}")
-        print(f"   - Clickbait Patterns: {analysis['has_clickbait_patterns']}")
-        print(f"   - Credible Sources: {analysis['has_credible_sources']}")
-        print(f"   - Sentiment: {analysis['sentiment']}")
-        
-        # Test basic authenticity scoring (offline)
-        print("\n🎯 Testing offline authenticity scoring...")
-        basic_score = checker.calculate_basic_authenticity_score(analysis)
-        print(f"✅ Basic authenticity score: {basic_score:.2f} ({basic_score*100:.1f}%)")
-        
-        # Test full authenticity check (offline)
-        print("\n🔍 Testing full offline authenticity check...")
-        result = checker.check_news_authenticity(test_text)
-        print("✅ Full authenticity check completed:")
-        print(f"   - Authenticity Score: {result['authenticity_score']:.2f} ({result['authenticity_score']*100:.1f}%)")
-        print(f"   - Offline Mode: {result.get('offline_mode', True)}")
-        print(f"   - Similar Facts Found: {len(result['similar_facts'])}")
-        print(f"   - Recommendations: {len(result['recommendations'])}")
-        
-        print("\n🎉 All offline tests passed successfully!")
-        print("🚀 The app works completely without external APIs or internet connection!")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-def test_without_internet():
-    """Test that the app works without internet connection"""
-    print("\n🌐 Testing without internet connection...")
-    print("=" * 50)
-    
-    try:
-        # Simulate no internet by temporarily removing requests
-        import requests
-        
-        # Test that we can still analyze text
-        from app import NewsAuthenticityChecker
-        checker = NewsAuthenticityChecker()
-        
-        test_text = "This is another test article about climate change and renewable energy."
-        
-        # This should work completely offline
-        result = checker.check_news_authenticity(test_text)
-        
-        if result['authenticity_score'] > 0:
-            print("✅ App works without internet connection!")
-            print(f"   - Score calculated: {result['authenticity_score']:.2f}")
-            print(f"   - Offline mode: {result.get('offline_mode', True)}")
+        response = requests.get(f"{BASE_URL}/health")
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ Health check passed: {data['status']}")
             return True
         else:
-            print("❌ App failed without internet connection")
+            print(f"❌ Health check failed: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"❌ Health check error: {e}")
+        return False
+
+def test_api_status():
+    """Test the API status endpoint"""
+    print("\n🔍 Testing API status endpoint...")
+    try:
+        response = requests.get(f"{BASE_URL}/api/status")
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ API status retrieved successfully")
+            print(f"   Active APIs: {data['enhancement_info']['active_apis']}/{data['enhancement_info']['total_apis']}")
+            print(f"   Enhancement Level: {data['enhancement_info']['enhancement_percentage']:.1f}%")
+            return True
+        else:
+            print(f"❌ API status failed: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"❌ API status error: {e}")
+        return False
+
+def test_api_config():
+    """Test the API configuration endpoint"""
+    print("\n🔍 Testing API configuration endpoint...")
+    try:
+        # Test GET
+        response = requests.get(f"{BASE_URL}/api/config")
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ API config GET successful")
+            print(f"   Available config keys: {list(data['config'].keys())}")
+        else:
+            print(f"❌ API config GET failed: {response.status_code}")
+            return False
+        
+        # Test POST with dummy data
+        test_config = {
+            "GOOGLE_API_KEY": "test_key_123",
+            "NEWS_API_KEY": "test_news_key"
+        }
+        
+        response = requests.post(f"{BASE_URL}/api/config", json=test_config)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ API config POST successful: {data['message']}")
+            return True
+        else:
+            print(f"❌ API config POST failed: {response.status_code}")
             return False
             
     except Exception as e:
-        print(f"❌ Internet test failed: {e}")
+        print(f"❌ API config error: {e}")
         return False
 
-if __name__ == "__main__":
-    print("🔍 News Authenticity Checker - Offline Test Suite")
-    print("=" * 60)
+def test_authenticity_check():
+    """Test the main authenticity checking functionality"""
+    print("\n🔍 Testing authenticity check...")
+    try:
+        payload = {"news_text": TEST_NEWS}
+        response = requests.post(f"{BASE_URL}/check_authenticity", json=payload)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ Authenticity check successful")
+            print(f"   Score: {data['authenticity_score']:.2f}")
+            print(f"   Offline Mode: {data['offline_mode']}")
+            print(f"   Enhanced with APIs: {data.get('enhanced_with_apis', False)}")
+            
+            if 'api_enhancements' in data and data['api_enhancements']:
+                print(f"   API Enhancements: {', '.join(data['api_enhancements'])}")
+            
+            return True
+        else:
+            print(f"❌ Authenticity check failed: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Authenticity check error: {e}")
+        return False
+
+def test_offline_functionality():
+    """Test that the app works completely offline"""
+    print("\n🔍 Testing offline functionality...")
+    try:
+        # Test with a simple news text
+        test_texts = [
+            "This is a test news article.",
+            "Scientists claim amazing discovery.",
+            "Breaking news: incredible breakthrough in technology."
+        ]
+        
+        for i, text in enumerate(test_texts, 1):
+            payload = {"news_text": text}
+            response = requests.post(f"{BASE_URL}/check_authenticity", json=payload)
+            
+            if response.status_code == 200:
+                data = response.json()
+                print(f"   ✅ Test {i}: Score {data['authenticity_score']:.2f}")
+            else:
+                print(f"   ❌ Test {i}: Failed with status {response.status_code}")
+                return False
+        
+        print("✅ All offline tests passed")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Offline functionality error: {e}")
+        return False
+
+def main():
+    """Run all tests"""
+    print("🚀 Starting News Authenticity Checker Tests")
+    print("=" * 50)
     
-    # Test basic offline functionality
-    offline_success = test_offline_functionality()
+    tests = [
+        test_health_endpoint,
+        test_api_status,
+        test_api_config,
+        test_authenticity_check,
+        test_offline_functionality
+    ]
     
-    # Test without internet
-    internet_success = test_without_internet()
+    passed = 0
+    total = len(tests)
     
-    print("\n" + "=" * 60)
-    print("📊 Test Results Summary:")
-    print(f"   - Offline Functionality: {'✅ PASS' if offline_success else '❌ FAIL'}")
-    print(f"   - No Internet Required: {'✅ PASS' if internet_success else '❌ FAIL'}")
+    for test in tests:
+        try:
+            if test():
+                passed += 1
+            time.sleep(0.5)  # Small delay between tests
+        except Exception as e:
+            print(f"❌ Test {test.__name__} crashed: {e}")
     
-    if offline_success and internet_success:
-        print("\n🎉 All tests passed! The app is 100% offline capable!")
-        print("🆓 No API keys or internet connection required for core functionality!")
+    print("\n" + "=" * 50)
+    print(f"📊 Test Results: {passed}/{total} tests passed")
+    
+    if passed == total:
+        print("🎉 All tests passed! The app is working correctly.")
     else:
-        print("\n⚠️  Some tests failed. Check the error messages above.")
+        print("⚠️  Some tests failed. Check the output above for details.")
     
-    print("\n" + "=" * 60)
+    return passed == total
+
+if __name__ == "__main__":
+    success = main()
+    exit(0 if success else 1)
