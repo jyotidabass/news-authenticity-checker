@@ -151,11 +151,20 @@ class NewsAuthenticityChecker:
                 try:
                     test_url = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
                     params = {'key': Config.GOOGLE_API_KEY, 'query': 'test', 'languageCode': 'en'}
-                    response = requests.get(test_url, params=params, timeout=5)
-                    Config.API_STATUS["google_fact_check"] = response.status_code == 200
-                except:
+                    logger.info(f"Testing Google API with key: {Config.GOOGLE_API_KEY[:10]}...")
+                    response = requests.get(test_url, params=params, timeout=10)
+                    logger.info(f"Google API response status: {response.status_code}")
+                    if response.status_code == 200:
+                        Config.API_STATUS["google_fact_check"] = True
+                        logger.info("Google API status check successful")
+                    else:
+                        logger.warning(f"Google API returned status {response.status_code}: {response.text}")
+                        Config.API_STATUS["google_fact_check"] = False
+                except Exception as e:
+                    logger.error(f"Google API status check failed: {e}")
                     Config.API_STATUS["google_fact_check"] = False
             else:
+                logger.info(f"Google API not checked - Key: {'Yes' if Config.GOOGLE_API_KEY else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
                 Config.API_STATUS["google_fact_check"] = False
             
             # Check News API
@@ -163,11 +172,20 @@ class NewsAuthenticityChecker:
                 try:
                     test_url = "https://newsapi.org/v2/top-headlines"
                     params = {'apiKey': Config.NEWS_API_KEY, 'country': 'us', 'pageSize': 1}
-                    response = requests.get(test_url, params=params, timeout=5)
-                    Config.API_STATUS["news_api"] = response.status_code == 200
-                except:
+                    logger.info(f"Testing News API with key: {Config.NEWS_API_KEY[:10]}...")
+                    response = requests.get(test_url, params=params, timeout=10)
+                    logger.info(f"News API response status: {response.status_code}")
+                    if response.status_code == 200:
+                        Config.API_STATUS["news_api"] = True
+                        logger.info("News API status check successful")
+                    else:
+                        logger.warning(f"News API returned status {response.status_code}: {response.text}")
+                        Config.API_STATUS["news_api"] = False
+                except Exception as e:
+                    logger.error(f"News API status check failed: {e}")
                     Config.API_STATUS["news_api"] = False
             else:
+                logger.info(f"News API not checked - Key: {'Yes' if Config.NEWS_API_KEY else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
                 Config.API_STATUS["news_api"] = False
             
             # Check OpenAI API
@@ -175,11 +193,20 @@ class NewsAuthenticityChecker:
                 try:
                     test_url = "https://api.openai.com/v1/models"
                     headers = {'Authorization': f'Bearer {Config.OPENAI_API_KEY}'}
-                    response = requests.get(test_url, headers=headers, timeout=5)
-                    Config.API_STATUS["openai"] = response.status_code == 200
-                except:
+                    logger.info(f"Testing OpenAI API with key: {Config.OPENAI_API_KEY[:10]}...")
+                    response = requests.get(test_url, headers=headers, timeout=10)
+                    logger.info(f"OpenAI API response status: {response.status_code}")
+                    if response.status_code == 200:
+                        Config.API_STATUS["openai"] = True
+                        logger.info("OpenAI API status check successful")
+                    else:
+                        logger.warning(f"OpenAI API returned status {response.status_code}: {response.text}")
+                        Config.API_STATUS["openai"] = False
+                except Exception as e:
+                    logger.error(f"OpenAI API status check failed: {e}")
                     Config.API_STATUS["openai"] = False
             else:
+                logger.info(f"OpenAI API not checked - Key: {'Yes' if Config.OPENAI_API_KEY else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
                 Config.API_STATUS["openai"] = False
             
             # Check FactCheck.org API (if available)
@@ -211,6 +238,24 @@ class NewsAuthenticityChecker:
                     Config.API_STATUS["politifact"] = False
             else:
                 Config.API_STATUS["politifact"] = False
+                
+            # Check Pinecone API (if available)
+            if Config.PINECONE_API_KEY and Config.PINECONE_ENVIRONMENT and REQUESTS_AVAILABLE:
+                try:
+                    logger.info(f"Testing Pinecone API with key: {Config.PINECONE_API_KEY[:10]}...")
+                    # Test Pinecone by trying to list indexes
+                    import pinecone
+                    pinecone.init(api_key=Config.PINECONE_API_KEY, environment=Config.PINECONE_ENVIRONMENT)
+                    indexes = pinecone.list_indexes()
+                    logger.info(f"Pinecone indexes found: {len(indexes)}")
+                    Config.API_STATUS["pinecone"] = True
+                    logger.info("Pinecone API status check successful")
+                except Exception as e:
+                    logger.error(f"Pinecone API status check failed: {e}")
+                    Config.API_STATUS["pinecone"] = False
+            else:
+                logger.info(f"Pinecone not checked - Key: {'Yes' if Config.PINECONE_API_KEY else 'No'}, Environment: {'Yes' if Config.PINECONE_ENVIRONMENT else 'No'}, Requests: {'Yes' if REQUESTS_AVAILABLE else 'No'}")
+                Config.API_STATUS["pinecone"] = False
                 
         except Exception as e:
             logger.error(f"Error checking API status: {e}")
@@ -327,12 +372,14 @@ class NewsAuthenticityChecker:
             logger.warning("Requests module not available, cannot use Google Fact Check API.")
             return results
 
+        logger.info(f"Starting Google Fact Check API call with key: {Config.GOOGLE_API_KEY[:10]}...")
         try:
             # Google Fact Check API endpoint
             url = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
             
             # Extract key terms for search
             search_terms = self.extract_search_terms(text)
+            logger.info(f"Search terms extracted: {search_terms[:3]}")
             
             for term in search_terms[:3]:  # Limit to 3 terms to avoid rate limiting
                 params = {
@@ -341,10 +388,13 @@ class NewsAuthenticityChecker:
                     'languageCode': 'en'
                 }
                 
-                response = requests.get(url, params=params)
+                logger.info(f"Searching for term: '{term}'")
+                response = requests.get(url, params=params, timeout=15)
+                logger.info(f"Google API response for '{term}': {response.status_code}")
                 
                 if response.status_code == 200:
                     data = response.json()
+                    logger.info(f"Google API data received: {len(data.get('claims', []))} claims found")
                     
                     if 'claims' in data and data['claims']:
                         results["fact_check_available"] = True
@@ -389,6 +439,8 @@ class NewsAuthenticityChecker:
                             elif claim_info.get('verdict') == 'true' and results["verdict"] != 'false':
                                 results["verdict"] = 'true'
                                 results["confidence"] = max(results["confidence"], 0.7)
+                else:
+                    logger.warning(f"Google API returned error status {response.status_code}: {response.text}")
                 
                 # Add delay to respect rate limits
                 import time
@@ -397,6 +449,7 @@ class NewsAuthenticityChecker:
         except Exception as e:
             logger.error(f"Google Fact Check API error: {e}")
         
+        logger.info(f"Google Fact Check completed. Results: {results}")
         return results
     
     def check_free_fact_check_sources(self, text: str) -> Dict:
@@ -477,8 +530,10 @@ class NewsAuthenticityChecker:
     def check_news_api(self, text: str) -> Dict:
         """Check News API for related articles"""
         results = {
+            "news_available": False,
             "articles": [],
-            "total_results": 0
+            "total_results": 0,
+            "search_terms_used": []
         }
         
         if not Config.NEWS_API_KEY:
@@ -494,6 +549,7 @@ class NewsAuthenticityChecker:
             
             # Extract key terms for search
             search_terms = self.extract_search_terms(text)
+            results["search_terms_used"] = search_terms[:2]
             
             for term in search_terms[:2]:  # Limit to avoid rate limiting
                 params = {
@@ -504,7 +560,7 @@ class NewsAuthenticityChecker:
                     'pageSize': 5
                 }
                 
-                response = requests.get(url, params=params)
+                response = requests.get(url, params=params, timeout=15)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -527,6 +583,10 @@ class NewsAuthenticityChecker:
                 # Add delay to respect rate limits
                 import time
                 time.sleep(0.1)
+            
+            # Set news_available based on whether we found articles
+            results["news_available"] = len(results["articles"]) > 0
+            results["total_results"] = len(results["articles"])
                 
         except Exception as e:
             logger.error(f"News API error: {e}")
@@ -681,6 +741,29 @@ class NewsAuthenticityChecker:
                         logger.info("Google Fact Check API completed")
                 except Exception as e:
                     logger.warning(f"Google API failed, continuing with offline mode: {e}")
+            
+            # Try News API for related articles (if available)
+            if Config.NEWS_API_KEY and Config.API_STATUS.get("news_api", False):
+                try:
+                    news_results = self.check_news_api(news_text)
+                    if news_results["news_available"]:
+                        fact_check_results["related_news"] = news_results
+                        fact_check_results["api_enhancements"].append("News API")
+                        fact_check_results["offline_mode"] = False
+                        logger.info("News API enhanced analysis completed")
+                except Exception as e:
+                    logger.warning(f"News API failed, continuing with offline mode: {e}")
+            
+            # Try Pinecone for enhanced similarity search (if available)
+            if Config.PINECONE_API_KEY and Config.API_STATUS.get("pinecone", False):
+                try:
+                    # Pinecone is already used in search_similar_facts if available
+                    if self.pinecone_index:
+                        fact_check_results["api_enhancements"].append("Pinecone Search")
+                        fact_check_results["offline_mode"] = False
+                        logger.info("Pinecone enhanced similarity search completed")
+                except Exception as e:
+                    logger.warning(f"Pinecone failed, continuing with local search: {e}")
             
             # Always provide free alternatives (works offline)
             try:
@@ -1280,10 +1363,10 @@ HTML_TEMPLATE = """
         }
         
         .google-facts {
-            background: #e3f2fd;
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
             padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #2196f3;
             margin-bottom: 20px;
         }
         
@@ -1518,6 +1601,32 @@ HTML_TEMPLATE = """
                 grid-template-columns: 1fr;
             }
         }
+        
+        .related-news {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .related-news h3 {
+            color: #2196f3;
+            margin-bottom: 15px;
+        }
+        
+        .related-news ul {
+            list-style: none;
+        }
+        
+        .related-news li {
+            padding: 8px 0;
+            border-bottom: 1px solid #d5e8d5;
+        }
+        
+        .related-news li:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -1639,6 +1748,11 @@ HTML_TEMPLATE = """
                 <div class="google-facts" id="googleFacts" style="display: none;">
                     <h3>🔍 Google Fact Check Results</h3>
                     <div id="googleFactResults"></div>
+                </div>
+                
+                <div class="related-news" id="relatedNews" style="display: none;">
+                    <h3>📰 Related News Articles</h3>
+                    <div id="relatedNewsResults"></div>
                 </div>
                 
                 <div class="free-alternatives" id="freeAlternatives" style="display: none;">
@@ -1800,6 +1914,23 @@ HTML_TEMPLATE = """
                 googleFacts.style.display = 'block';
             } else {
                 googleFacts.style.display = 'none';
+            }
+
+            // Display Related News Articles
+            const relatedNews = document.getElementById('relatedNews');
+            const relatedNewsResults = document.getElementById('relatedNewsResults');
+            if (result.fact_check_results.related_news && result.fact_check_results.related_news.articles && result.fact_check_results.related_news.articles.length > 0) {
+                relatedNewsResults.innerHTML = result.fact_check_results.related_news.articles.map(article => `
+                    <div class="fact-item">
+                        <p>${article.title}</p>
+                        <div class="fact-source">
+                            Source: ${article.source} | URL: <a href="${article.url}" target="_blank">View Article</a>
+                        </div>
+                    </div>
+                `).join('');
+                relatedNews.style.display = 'block';
+            } else {
+                relatedNews.style.display = 'none';
             }
 
             // Display Free Fact-Checking Alternatives

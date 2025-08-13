@@ -1,338 +1,224 @@
 # 🔍 News Authenticity Checker
 
-A powerful AI-powered application that detects misinformation in news articles using advanced NLP techniques, **completely offline** with optional API enhancements.
+A comprehensive fake news detection tool that works **completely offline by default** with **optional API enhancements** for better accuracy. Built with Flask, AI text analysis, and multiple external fact-checking APIs.
 
-**A comprehensive solution for detecting misinformation and verifying news authenticity**
-
-## ✨ Features
-
-- **🆓 100% Offline Capable**: Works without internet connection or API keys
-- **AI-Powered Analysis**: Uses HuggingFace sentence transformers for semantic understanding
-- **Enhanced Local Database**: Built-in verified facts covering health, science, technology, politics, and more
-- **Text Characteristic Analysis**: Detects emotional language, clickbait patterns, and credibility indicators
-- **Real-time Scoring**: Provides authenticity scores with detailed breakdowns
-- **Beautiful UI**: Modern, responsive web interface with real-time feedback
-- **Smart Recommendations**: AI-generated suggestions for fact verification
-- **Multiple Verification Methods**: Combines offline analysis with optional API enhancements
-- **Optional API Integration**: Google Fact Check, News API, OpenAI, and Pinecone for enhanced features
-- **Dynamic API Configuration**: Web-based API key management for easy setup
-- **Real-time API Status**: Live monitoring of API availability and performance
-
-## 🚀 Technologies Used
-
-- **Backend**: Flask (Python)
-- **AI/ML**: HuggingFace Transformers, Sentence Transformers
-- **Local Database**: Built-in verified facts (always available)
-- **Optional APIs**: Google Fact Check API, News API, OpenAI API, Pinecone
-- **Configuration**: Dynamic API key management with real-time status monitoring
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Deployment**: Vercel, GitHub, or any platform
-
-## 🛠️ Installation & Setup
-
-### Prerequisites
-
-- Python 3.8+
-- **No internet connection required** for core functionality
-- **No API keys required** for basic fact-checking
-- **Optional**: Google Cloud Platform account (for enhanced Fact Check API)
-- **Optional**: News API account (free tier available)
-- **Optional**: Pinecone account (for enhanced vector search)
-
-> **🆓 100% Offline Ready!** The application works completely without internet connection or API keys. All core features are available offline with a built-in database of verified facts.
-
-> **💡 Enhanced with APIs**: Optional API keys provide additional fact-checking capabilities and real-time data, but are not required for the app to function.
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/news-authenticity-checker.git
-cd news-authenticity-checker
-```
-
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Set Up Environment Variables (Optional)
-
-> **💡 The app works without any API keys!** These are optional for enhanced functionality.
-
-Create a `.env` file in the root directory:
-
-```env
-# Google Fact Check API (Optional - for enhanced fact-checking)
-GOOGLE_API_KEY=your_google_api_key_here
-
-# News API (Optional - free tier available)
-NEWS_API_KEY=your_news_api_key_here
-
-# OpenAI API (Optional - for AI-powered analysis)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Pinecone (Optional - for enhanced vector search)
-PINECONE_API_KEY=your_pinecone_api_key_here
-PINECONE_ENVIRONMENT=your_pinecone_environment_here
-```
-
-**Alternative: Use the Web Interface**
-- **No file editing required!** Use the built-in API configuration panel
-- **Real-time status monitoring** of all API connections
-- **Easy setup** with copy-paste API keys
-- **Instant activation** of enhanced features
-
-**Free Alternatives Available:**
-- **Fact-Checking Sources**: Snopes, FactCheck.org, PolitiFact, Reuters, BBC, AFP
-- **Web Verification**: Search suggestions and manual verification steps
-- **AI Analysis**: Text characteristics, sentiment analysis, credibility indicators
-- **Local Fact Database**: Built-in verified facts for comparison
-
-### 4. Get API Keys (Optional)
-
-> **🆓 Skip this step if you want to use the app for free!** The application provides comprehensive fact-checking without any API keys.
-
-#### Google Fact Check API (Optional - Enhanced Fact-Checking)
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the Fact Check Tools API
-4. Create credentials (API Key)
-5. Copy the API key to your `.env` file
-
-#### OpenAI API (Optional - AI-Powered Analysis)
-1. Sign up at [OpenAI Platform](https://platform.openai.com/)
-2. Create an API key
-3. Add to `.env` file or use the web interface for enhanced AI analysis
-
-#### News API (Optional - Free Tier Available)
-1. Sign up at [News API](https://newsapi.org/) (1000 requests/month free)
-2. Get your API key
-3. Add to `.env` file or use the web interface for related news articles
-
-#### Pinecone (Optional - Enhanced Vector Search)
-1. Sign up at [Pinecone](https://www.pinecone.io/)
-2. Create a new index
-3. Copy your API key and environment to `.env` file or use the web interface
-
-**What You Get Without API Keys:**
-- ✅ AI-powered text analysis
-- ✅ Emotional language detection
-- ✅ Clickbait pattern recognition
-- ✅ Credibility source analysis
-- ✅ Similar fact matching
-- ✅ Free fact-checking source recommendations
-- ✅ Manual verification guidance
-- ✅ Authenticity scoring
-
-### 5. Run the Application
-
-```bash
-python app.py
-```
-
-The application will be available at `http://localhost:5000`
-
-## 🌐 Usage
-
-1. **Open the Application**: Navigate to the web interface
-2. **Input News Text**: Paste the news article, headline, or statement you want to verify
-3. **Analyze**: Click "Check Authenticity" to start the analysis
-4. **Review Results**: Get detailed breakdowns including:
-   - Authenticity Score (0-100%)
-   - Text Analysis (length, emotional language, clickbait patterns)
-   - Similar Verified Facts
-   - Google Fact Check Results
-   - AI-Generated Recommendations
-
-## 📊 How It Works
-
-### 1. Text Processing
-- Input text is processed and cleaned
-- Key search terms are extracted for fact-checking
-- Text characteristics are analyzed for credibility indicators
-
-### 2. AI Analysis
-- Sentence embeddings are generated using HuggingFace models
-- Similarity scores are calculated against verified facts
-- Text patterns are analyzed for fake news indicators
-
-### 3. Fact Checking
-- Google Fact Check API searches for related claims
-- Verdicts are analyzed and categorized
-- Confidence scores are calculated
-
-### 4. Scoring Algorithm
-The authenticity score is calculated based on:
-- **Similar Facts (30%)**: How well the text matches verified information
-- **Text Characteristics (40%)**: Language quality, source credibility, length
-- **Fact Check Results (30%)**: Google API verification results
-
-## 🌐 Offline vs Online Features
+## ✨ Key Features
 
 ### 🆓 **Always Available (Offline)**
-- ✅ **AI Text Analysis**: Emotional language, clickbait patterns, credibility indicators
-- ✅ **Sentiment Analysis**: Positive, negative, or neutral content assessment
-- ✅ **Local Fact Database**: 20+ verified facts covering multiple categories
-- ✅ **Similarity Matching**: AI-powered fact comparison using embeddings
-- ✅ **Authenticity Scoring**: Comprehensive scoring algorithm
-- ✅ **Smart Recommendations**: AI-generated verification advice
-- ✅ **Text Characteristics**: Length, word count, source credibility analysis
+- **AI Text Analysis** - Detects suspicious patterns, emotional language, and clickbait
+- **Local Fact Database** - Built-in verified facts for comparison
+- **Similarity Matching** - Finds similar verified facts using embeddings
+- **Authenticity Scoring** - Calculates trustworthiness score
+- **Free Fact-Checking Sources** - Manual verification suggestions
+- **Web Scraping Analysis** - Extracts facts from reliable sources
 
-### 🌐 **Enhanced with APIs (Optional)**
-- 🔍 **Google Fact Check**: Real-time fact verification from Google's database
-- 📰 **News API**: Related articles and current news context
-- 🤖 **OpenAI API**: Advanced AI-powered fact-checking and reasoning
-- 🗄️ **Pinecone**: Advanced vector similarity search
-- 🔄 **Real-time Updates**: Live fact-checking data
-- ⚙️ **Dynamic Configuration**: Web-based API management
-- 📊 **Live Status Monitoring**: Real-time API performance tracking
+### 🚀 **Optional API Enhancements**
+- **Google Fact Check API** - Real-time fact verification from Google's database
+- **News API** - Related articles and current news context
+- **OpenAI API** - Advanced AI-powered analysis and reasoning
+- **Pinecone** - Enhanced vector similarity search
+- **Dynamic Configuration** - Add/remove APIs through web interface
+- **Real-time Status Monitoring** - See which APIs are active
 
-### 📱 **Deployment Flexibility**
-- **Local Development**: Works completely offline
-- **Cloud Deployment**: Enhanced with optional APIs
-- **Air-gapped Networks**: Full functionality without internet
-- **Low-bandwidth Environments**: Core features work without external calls
-- **Easy API Setup**: No file editing required - use the web interface
+## 🎯 **How It Works**
 
-## 🚀 Deployment
+1. **Default Mode**: App runs completely offline with basic analysis
+2. **Enhanced Mode**: Users can optionally add API keys for better results
+3. **Mixed Mode**: Some APIs can be active while others are inactive
+4. **Always Safe**: Even if APIs fail, users still get comprehensive results
 
-### Deploy to Vercel
+## 🚀 **Quick Start**
 
-1. **Push to GitHub**:
+### Option 1: Run Locally (Recommended for Development)
+
 ```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
+# Clone the repository
+git clone <your-repo-url>
+cd fake-news-detector
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the app
+python app.py
+
+# Open http://localhost:5000 in your browser
 ```
 
-2. **Connect to Vercel**:
-   - Go to [Vercel](https://vercel.com/)
-   - Import your GitHub repository
-   - Set environment variables in Vercel dashboard
-   - Deploy!
+### Option 2: Deploy to Vercel (Production)
 
-### Deploy to Other Platforms
-
-The application is compatible with:
-- **Heroku**: Add `Procfile` and `runtime.txt`
-- **Railway**: Direct GitHub integration
-- **DigitalOcean App Platform**: Container deployment
-- **AWS/GCP**: Container or serverless deployment
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GOOGLE_API_KEY` | Google Fact Check API key | No |
-| `NEWS_API_KEY` | News API key | No |
-| `OPENAI_API_KEY` | OpenAI API key | No |
-| `PINECONE_API_KEY` | Pinecone API key | No |
-| `PINECONE_ENVIRONMENT` | Pinecone environment | No |
-
-### Web-Based Configuration (Recommended)
-
-> **💡 No file editing required!** Use the built-in API configuration panel for easy setup.
-
-1. **Open the App**: Navigate to your deployed application
-2. **Click "API Configuration"**: Located below the main input form
-3. **Enter API Keys**: Copy-paste your API keys into the form
-4. **Save Configuration**: Click "Save API Configuration"
-5. **Monitor Status**: Real-time status indicators show API availability
-
-**Benefits of Web Configuration:**
-- ✅ **Instant Activation**: No server restarts required
-- ✅ **Real-time Monitoring**: Live status of all API connections
-- ✅ **Easy Management**: Update keys without touching files
-- ✅ **Visual Feedback**: Clear indicators of what's working
-- ✅ **Secure Input**: Password fields protect your API keys
-
-### Customization
-
-- **Model**: Change `MODEL_NAME` in `Config` class for different HuggingFace models
-- **Thresholds**: Adjust `SIMILARITY_THRESHOLD` for sensitivity
-- **Fact Database**: Modify `load_fact_database()` method for custom facts
-- **UI**: Customize the HTML template and CSS styles
-
-## 📈 Performance & Scaling
-
-- **Caching**: Implement Redis for response caching
-- **Rate Limiting**: Add rate limiting for API endpoints
-- **Load Balancing**: Use multiple instances behind a load balancer
-- **CDN**: Serve static assets through CDN for global performance
-
-## 🧪 Testing
-
-### Run Tests
 ```bash
-python -m pytest tests/
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
 ```
 
-### Test API Endpoints
+## 🔑 **API Configuration (Optional)**
+
+### **Web-Based Configuration (Recommended)**
+1. Open the app in your browser
+2. Click "⚙️ API Configuration (Optional)"
+3. Add your API keys in the form
+4. Click "💾 Save API Configuration"
+5. APIs are automatically tested and activated
+
+### **Manual Configuration (Alternative)**
+Create a `.env` file in your project root:
+
+```env
+# Optional APIs for enhanced results
+GOOGLE_API_KEY=your_google_fact_check_api_key
+NEWS_API_KEY=your_news_api_key
+OPENAI_API_KEY=your_openai_api_key
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_ENVIRONMENT=your_pinecone_environment
+```
+
+## 📚 **Getting API Keys**
+
+### **Google Fact Check API**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the "Fact Check Tools API"
+3. Create credentials (API Key)
+4. Add to your configuration
+
+### **News API**
+1. Visit [NewsAPI.org](https://newsapi.org/)
+2. Sign up for a free account
+3. Get your API key
+4. Add to your configuration
+
+### **OpenAI API**
+1. Go to [OpenAI Platform](https://platform.openai.com/)
+2. Create an account and add billing
+3. Generate an API key
+4. Add to your configuration
+
+### **Pinecone**
+1. Visit [Pinecone.io](https://www.pinecone.io/)
+2. Create a free account
+3. Get your API key and environment
+4. Add to your configuration
+
+## 🧪 **Testing**
+
+### **Run the Test Suite**
+```bash
+python test_script.py
+```
+
+### **Test Individual Endpoints**
 ```bash
 # Health check
 curl http://localhost:5000/health
 
+# API status
+curl http://localhost:5000/api/status
+
+# API configuration
+curl http://localhost:5000/api/config
+
 # Check authenticity
 curl -X POST http://localhost:5000/check_authenticity \
   -H "Content-Type: application/json" \
-  -d '{"news_text": "Your news text here"}'
-
-# Get API status
-curl http://localhost:5000/api/status
-
-# Get API configuration
-curl http://localhost:5000/api/config
-
-# Update API configuration
-curl -X POST http://localhost:5000/api/config \
-  -H "Content-Type: application/json" \
-  -d '{"GOOGLE_API_KEY": "your_key_here"}'
+  -d '{"news_text": "Test news article"}'
 ```
 
-## 🤝 Contributing
+## 🏗️ **Architecture**
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Flask Backend  │    │   External      │
+│   (HTML/JS)     │◄──►│   (Python)       │◄──►│   APIs          │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   User Input    │    │   Text Analysis  │    │   Google Fact   │
+│   Results       │    │   Embeddings     │    │   Check API     │
+│   API Config    │    │   Similarity     │    │   News API      │
+└─────────────────┘    │   Scoring        │    │   OpenAI API    │
+                       └──────────────────┘    └─────────────────┘
+```
+
+## 📊 **API Status Monitoring**
+
+The app provides real-time monitoring of all configured APIs:
+
+- **🟢 Active**: API is working and enhancing results
+- **🔴 Inactive**: API is not configured or failed
+- **📊 Enhancement Level**: Percentage of active APIs
+- **🔍 Real-time Testing**: APIs are tested before each use
+
+## 🎨 **Customization**
+
+### **Adding New APIs**
+1. Add API key to `Config` class
+2. Implement API method in `NewsAuthenticityChecker`
+3. Add status checking in `check_api_status()`
+4. Integrate in `check_news_authenticity()`
+5. Update frontend display
+
+### **Modifying Analysis**
+- Adjust similarity thresholds in `Config.SIMILARITY_THRESHOLD`
+- Modify text analysis patterns in `analyze_text_characteristics()`
+- Update fact database in `Config.ENHANCED_FACTS`
+
+## 🔒 **Security Features**
+
+- API keys are masked in responses
+- No sensitive data is logged
+- Graceful error handling for API failures
+- Secure configuration updates
+
+## 📈 **Performance**
+
+- **Offline Mode**: Instant results (no API calls)
+- **API Mode**: Results enhanced with external data
+- **Caching**: Embeddings and analysis are cached
+- **Rate Limiting**: Respects API rate limits
+
+## 🚨 **Troubleshooting**
+
+### **APIs Not Working**
+1. Check API status in the web interface
+2. Verify API keys are correct
+3. Ensure APIs are enabled in their respective platforms
+4. Check network connectivity
+
+### **Offline Mode Issues**
+1. Verify all required Python packages are installed
+2. Check if the model files are downloaded
+3. Ensure sufficient disk space for embeddings
+
+### **Deployment Issues**
+1. Verify `vercel.json` configuration
+2. Check environment variables in Vercel dashboard
+3. Ensure Python version compatibility
+
+## 🤝 **Contributing**
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-## 📝 License
+## 📄 **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## 🙏 **Acknowledgments**
 
-- [HuggingFace](https://huggingface.co/) for transformer models
-- [Google Fact Check API](https://developers.google.com/fact-check/tools/api) for fact verification
-- [Pinecone](https://www.pinecone.io/) for vector similarity search
-- [Flask](https://flask.palletsprojects.com/) for the web framework
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/your-username/news-authenticity-checker/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/news-authenticity-checker/discussions)
-
-## 🔮 Future Enhancements
-
-- [x] **Multi-API Integration**: Google Fact Check, News API, OpenAI, Pinecone
-- [x] **Dynamic API Configuration**: Web-based API key management
-- [x] **Real-time API Monitoring**: Live status and performance tracking
-- [x] **Enhanced AI Analysis**: OpenAI-powered fact-checking
-- [ ] Multi-language support
-- [ ] Real-time news monitoring
-- [ ] Browser extension
-- [ ] Mobile app
-- [ ] Advanced sentiment analysis
-- [ ] Social media integration
-- [ ] Automated fact-checking reports
-- [ ] Machine learning model training
-- [ ] Integration with medical fact-checking databases
-- [ ] Audio/video content analysis
+- **HuggingFace** for sentence transformers
+- **Google** for Fact Check Tools API
+- **OpenAI** for AI analysis capabilities
+- **NewsAPI** for news aggregation
+- **Pinecone** for vector similarity search
 
 ---
 
-**Built for a more informed world with AI-powered misinformation detection and fact verification systems.**
+**💡 Remember**: This tool works perfectly without any APIs! APIs only enhance the results for better accuracy and real-time data.
