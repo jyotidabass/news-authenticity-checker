@@ -41,6 +41,368 @@ except ImportError:
 
 app = Flask(__name__)
 
+# HTML Template
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Authenticity Checker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        .main-content {
+            padding: 30px;
+        }
+        .input-section {
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+        .results-section.show {
+            display: block;
+        }
+        .authenticity-score {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            margin: 0 auto 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .score-high { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+        .score-medium { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); }
+        .score-low { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+        .score-label {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .analysis-box {
+            background: #f8f9fa;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .analysis-box h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .fact-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .fact-source {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 8px;
+        }
+        .recommendations {
+            background: #e8f5e8;
+            border: 1px solid #d4edda;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .recommendations h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .recommendations ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .recommendations li {
+            margin-bottom: 8px;
+            color: #155724;
+        }
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 News Authenticity Checker</h1>
+            <p>Detect misinformation using AI-powered fact-checking</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="newsText">Enter news text or headline to check:</label>
+                    <textarea id="newsText" placeholder="Paste the news article, headline, or statement you want to verify..."></textarea>
+                </div>
+                
+                <button class="btn" onclick="checkAuthenticity()" id="checkBtn">
+                    🔍 Check Authenticity
+                </button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing news authenticity...</p>
+            </div>
+            
+            <div class="results-section" id="results">
+                <div class="authenticity-score">
+                    <div class="score-circle" id="scoreCircle">
+                        <span id="scoreValue">0</span>%
+                    </div>
+                    <div class="score-label" id="scoreLabel">Authenticity Score</div>
+                </div>
+                
+                <div class="analysis-grid">
+                    <div class="analysis-box">
+                        <h3>📊 Text Analysis</h3>
+                        <div id="textAnalysis"></div>
+                    </div>
+                    
+                    <div class="analysis-box">
+                        <h3>🔍 Similar Verified Facts</h3>
+                        <div id="similarFacts"></div>
+                    </div>
+                </div>
+                
+                <div class="recommendations">
+                    <h3>💡 Recommendations</h3>
+                    <ul id="recommendations"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function checkAuthenticity() {
+            const newsText = document.getElementById('newsText').value.trim();
+            
+            if (!newsText) {
+                alert('Please enter some text to check.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('checkBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/check_authenticity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ news_text: newsText })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('checkBtn').disabled = false;
+            }
+        }
+        
+        function displayResults(result) {
+            // Update authenticity score
+            const score = Math.round(result.authenticity_score * 100);
+            const scoreCircle = document.getElementById('scoreCircle');
+            const scoreValue = document.getElementById('scoreValue');
+            const scoreLabel = document.getElementById('scoreLabel');
+            
+            scoreValue.textContent = score;
+            
+            // Set score color and label
+            scoreCircle.className = 'score-circle';
+            if (score >= 70) {
+                scoreCircle.classList.add('score-high');
+                scoreLabel.textContent = 'High Authenticity';
+            } else if (score >= 40) {
+                scoreCircle.classList.add('score-medium');
+                scoreLabel.textContent = 'Medium Authenticity';
+            } else {
+                scoreCircle.classList.add('score-low');
+                scoreLabel.textContent = 'Low Authenticity';
+            }
+
+            // Display text analysis
+            const textAnalysis = document.getElementById('textAnalysis');
+            if (result.text_analysis) {
+                const analysis = result.text_analysis;
+                textAnalysis.innerHTML = `
+                    <p><strong>Length:</strong> ${analysis.length || 'N/A'} characters</p>
+                    <p><strong>Word Count:</strong> ${analysis.word_count || 'N/A'} words</p>
+                    <p><strong>Emotional Language:</strong> ${analysis.emotional_language ? '✅ Yes' : '✅ No'}</p>
+                    <p><strong>Clickbait Patterns:</strong> ${analysis.clickbait_patterns ? '✅ Yes' : '✅ No'}</p>
+                    <p><strong>Credible Sources:</strong> ${analysis.credible_sources ? '✅ Yes' : '⚠️ No'}</p>
+                    <p><strong>Sentiment:</strong> ${analysis.sentiment || 'N/A'}</p>
+                `;
+            }
+
+            // Display similar facts
+            const similarFacts = document.getElementById('similarFacts');
+            if (result.similar_facts && result.similar_facts.length > 0) {
+                similarFacts.innerHTML = result.similar_facts.map(fact => `
+                    <div class="fact-item">
+                        <p>${fact.text}</p>
+                        <div class="fact-source">
+                            Source: ${fact.source} | Similarity: ${(fact.similarity * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                similarFacts.innerHTML = '<p>No similar verified facts found.</p>';
+            }
+            
+            // Display recommendations
+            const recommendations = document.getElementById('recommendations');
+            recommendations.innerHTML = result.recommendations.map(rec => 
+                `<li>${rec}</li>`
+            ).join('');
+            
+            // Show results
+            document.getElementById('results').classList.add('show');
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('newsText').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                checkAuthenticity();
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
 # Configuration
 class Config:
     # HuggingFace model for sentence embeddings
