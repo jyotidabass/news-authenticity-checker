@@ -130,6 +130,114 @@ HTML_TEMPLATE = """
             cursor: not-allowed;
             transform: none;
         }
+        
+        /* API Configuration Styles */
+        .api-config-toggle {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .api-config-toggle:hover {
+            background: #5a6268;
+        }
+        .api-config-panel {
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .api-config-panel.show {
+            display: block;
+        }
+        .api-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .api-status-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #6c757d;
+            position: relative;
+        }
+        .api-status-card.active {
+            border-left-color: #27ae60;
+        }
+        .api-status-card.inactive {
+            border-left-color: #e74c3c;
+        }
+        .api-status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        .api-status-indicator.active {
+            background-color: #27ae60;
+        }
+        .api-status-indicator.inactive {
+            background-color: #e74c3c;
+        }
+        .api-input-group {
+            margin-bottom: 15px;
+        }
+        .api-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .api-input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .api-input-group small {
+            color: #666;
+            font-size: 12px;
+        }
+        .api-save-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .api-save-btn:hover {
+            background: #229954;
+        }
+        .enhancement-info {
+            background: #e8f5e8;
+            border: 1px solid #d4edda;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .api-list {
+            list-style: none;
+            padding: 0;
+        }
+        .api-list li {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        
         .loading {
             text-align: center;
             padding: 40px;
@@ -179,6 +287,35 @@ HTML_TEMPLATE = """
             font-size: 1.2rem;
             color: #666;
             margin-bottom: 10px;
+        }
+        .offline-status {
+            margin-top: 10px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .offline-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .api-enhanced-badge {
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .enhancement-info-display {
+            background: #e8f5e8;
+            border: 1px solid #d4edda;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
         }
         .analysis-grid {
             display: grid;
@@ -239,7 +376,7 @@ HTML_TEMPLATE = """
     <div class="container">
         <div class="header">
             <h1>🔍 News Authenticity Checker</h1>
-            <p>Detect misinformation using AI-powered fact-checking</p>
+            <p>Detect misinformation using AI-powered fact-checking and optional API enhancements</p>
         </div>
         
         <div class="main-content">
@@ -254,6 +391,64 @@ HTML_TEMPLATE = """
                 </button>
             </div>
             
+            <!-- API Configuration Panel -->
+            <button class="api-config-toggle" onclick="toggleApiConfig()">
+                ⚙️ API Configuration (Optional)
+            </button>
+            
+            <div class="api-config-panel" id="apiConfigPanel">
+                <h3>🔑 Optional API Keys for Enhanced Results</h3>
+                <p>Add API keys to get better fact-checking results. All features work without APIs, but they provide enhanced accuracy and real-time data.</p>
+                
+                <div class="api-status-grid" id="apiStatusGrid">
+                    <!-- API status cards will be populated here -->
+                </div>
+                
+                <form id="apiConfigForm">
+                    <div class="api-input-group">
+                        <label for="googleApiKey">Google Fact Check API Key:</label>
+                        <input type="password" id="googleApiKey" placeholder="Get from Google Cloud Console">
+                        <small>Enhanced fact-checking using Google's database</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="newsApiKey">News API Key:</label>
+                        <input type="password" id="newsApiKey" placeholder="Get from NewsAPI.org (free tier available)">
+                        <small>Related news articles and context</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="openaiApiKey">OpenAI API Key:</label>
+                        <input type="password" id="openaiApiKey" placeholder="Get from OpenAI Platform">
+                        <small>AI-powered fact-checking and analysis</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="pineconeApiKey">Pinecone API Key:</label>
+                        <input type="password" id="pineconeApiKey" placeholder="Get from Pinecone.io">
+                        <small>Advanced vector similarity search</small>
+                    </div>
+                    
+                    <div class="api-input-group">
+                        <label for="pineconeEnvironment">Pinecone Environment:</label>
+                        <input type="text" id="pineconeEnvironment" placeholder="e.g., us-west1-gcp">
+                        <small>Your Pinecone environment (e.g., us-west1-gcp)</small>
+                    </div>
+                    
+                    <button type="submit" class="api-save-btn">💾 Save API Configuration</button>
+                </form>
+                
+                <div class="enhancement-info">
+                    <h4>🚀 What APIs Add to Your Results:</h4>
+                    <ul class="api-list">
+                        <li><strong>Google Fact Check:</strong> Real-time fact verification from Google's database</li>
+                        <li><strong>News API:</strong> Related articles and current news context</li>
+                        <li><strong>OpenAI:</strong> Advanced AI analysis and reasoning</li>
+                        <li><strong>Pinecone:</strong> Enhanced similarity search and fact matching</li>
+                    </ul>
+                </div>
+            </div>
+            
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>Analyzing news authenticity...</p>
@@ -265,6 +460,19 @@ HTML_TEMPLATE = """
                         <span id="scoreValue">0</span>%
                     </div>
                     <div class="score-label" id="scoreLabel">Authenticity Score</div>
+                    <div class="offline-status" id="offlineStatus" style="display: none;">
+                        <span class="offline-badge">🆓 Offline Mode</span>
+                        <small>Working without external APIs</small>
+                    </div>
+                    <div class="offline-status" id="apiEnhancedStatus" style="display: none;">
+                        <span class="api-enhanced-badge">🚀 API Enhanced</span>
+                        <small>Enhanced with external APIs for better accuracy</small>
+                    </div>
+                </div>
+                
+                <div class="enhancement-info-display" id="enhancementInfo" style="display: none;">
+                    <h4>🔧 API Enhancement Details</h4>
+                    <div id="enhancementDetails"></div>
                 </div>
                 
                 <div class="analysis-grid">
@@ -353,6 +561,28 @@ HTML_TEMPLATE = """
                 scoreLabel.textContent = 'Low Authenticity';
             }
 
+            // Update offline status
+            const offlineStatus = document.getElementById('offlineStatus');
+            const apiEnhancedStatus = document.getElementById('apiEnhancedStatus');
+            const enhancementInfo = document.getElementById('enhancementInfo');
+            
+            if (result.enhanced_with_apis) {
+                offlineStatus.style.display = 'none';
+                apiEnhancedStatus.style.display = 'block';
+                enhancementInfo.style.display = 'block';
+                
+                // Show enhancement details
+                const enhancementDetails = document.getElementById('enhancementDetails');
+                enhancementDetails.innerHTML = `
+                    <p><strong>APIs Used:</strong> ${result.api_enhancements.join(', ')}</p>
+                    <p><strong>Enhancement Level:</strong> ${result.api_status ? result.api_status.enhancement_percentage.toFixed(1) : 'N/A'}%</p>
+                `;
+            } else {
+                offlineStatus.style.display = 'block';
+                apiEnhancedStatus.style.display = 'none';
+                enhancementInfo.style.display = 'none';
+            }
+
             // Display text analysis
             const textAnalysis = document.getElementById('textAnalysis');
             if (result.text_analysis) {
@@ -392,11 +622,116 @@ HTML_TEMPLATE = """
             document.getElementById('results').classList.add('show');
         }
         
+        // API Configuration Functions
+        function toggleApiConfig() {
+            const panel = document.getElementById('apiConfigPanel');
+            panel.classList.toggle('show');
+            
+            if (panel.classList.contains('show')) {
+                loadApiStatus();
+                loadApiConfig();
+            }
+        }
+        
+        async function loadApiStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayApiStatus(data);
+                }
+            } catch (error) {
+                console.error('Error loading API status:', error);
+            }
+        }
+        
+        function displayApiStatus(data) {
+            const statusGrid = document.getElementById('apiStatusGrid');
+            statusGrid.innerHTML = '';
+            
+            data.available_apis.forEach(api => {
+                const card = document.createElement('div');
+                card.className = `api-status-card ${api.status ? 'active' : 'inactive'}`;
+                
+                const statusClass = api.status ? 'active' : 'inactive';
+                const statusText = api.status ? 'Active' : 'Inactive';
+                
+                card.innerHTML = `
+                    <div class="api-status-indicator ${statusClass}"></div>
+                    <h4>${api.name}</h4>
+                    <p>${api.description}</p>
+                    <small><strong>Status:</strong> ${statusText}</small>
+                    <br>
+                    <small><a href="${api.url}" target="_blank">Get API Key</a></small>
+                `;
+                
+                statusGrid.appendChild(card);
+            });
+        }
+        
+        async function loadApiConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    console.log('API config loaded');
+                }
+            } catch (error) {
+                console.error('Error loading API config:', error);
+            }
+        }
+        
+        // Handle API configuration form submission
+        document.getElementById('apiConfigForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                GOOGLE_API_KEY: document.getElementById('googleApiKey').value,
+                NEWS_API_KEY: document.getElementById('newsApiKey').value,
+                OPENAI_API_KEY: document.getElementById('openaiApiKey').value,
+                PINECONE_API_KEY: document.getElementById('pineconeApiKey').value,
+                PINECONE_ENVIRONMENT: document.getElementById('pineconeEnvironment').value
+            };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('API configuration saved successfully!');
+                    // Clear the form
+                    document.getElementById('apiConfigForm').reset();
+                    // Reload API status
+                    loadApiStatus();
+                } else {
+                    alert('Error saving configuration: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error saving API config:', error);
+                alert('Error saving configuration. Please try again.');
+            }
+        });
+        
         // Allow Enter key to submit
         document.getElementById('newsText').addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && e.ctrlKey) {
                 checkAuthenticity();
             }
+        });
+        
+        // Load API status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial API status
+            loadApiStatus();
         });
     </script>
 </body>
